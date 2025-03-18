@@ -3,6 +3,8 @@
 #include <vector>
 #include <atomic>
 #include <chrono>
+#include <string>
+#include <functional>
 
 // Binary semaphore
 class Semaphore
@@ -43,7 +45,7 @@ enum PhilosopherState
     EATING
 };
 
-// Console synchronization class
+// Console output synchronization class
 class ConsoleLock
 {
 private:
@@ -58,122 +60,172 @@ public:
     }
 };
 
-// TODO: Expand with deadlock prevention mechanism
+// Class implementing the dining philosophers problem
 class DiningTable
 {
 private:
-    int num_philosophers;
-    std::vector<Semaphore> forks;
-    std::vector<PhilosopherState> states;
-    ConsoleLock console;
+    int n;                               // number of philosophers
+    std::vector<PhilosopherState> state; // array of philosopher states
+    std::vector<Semaphore> forks;        // semaphores for forks
+    std::vector<Semaphore> self;         // semaphore for each philosopher
+    Semaphore state_mutex;               // semaphore for accessing the state array
+    std::atomic<bool> running;           // flag to stop the simulation
+    ConsoleLock console;                 // object for display synchronization
+
+    // Checks if a philosopher can eat
+    void test(int i)
+    {
+        if (state[i] == HUNGRY &&
+            state[(i + n - 1) % n] != EATING &&
+            state[(i + 1) % n] != EATING)
+        {
+
+            state[i] = EATING;
+            self[i].release();
+        }
+    }
 
 public:
-    DiningTable(int n) : num_philosophers(n), forks(n), states(n, THINKING) {}
-
-    // Attempt to pick up forks
-    bool try_pickup_forks(int id)
+    DiningTable(int num_philosophers)
+        : n(num_philosophers),
+          state(num_philosophers, THINKING),
+          forks(num_philosophers),
+          self(num_philosophers),
+          running(true)
     {
-        int left_fork = id;
-        int right_fork = (id + 1) % num_philosophers;
 
-        // Try to pick up left fork
-        if (!forks[left_fork].try_acquire())
+        // Initialize semaphores for forks
+        for (int i = 0; i < n; i++)
         {
-            return false;
+            self[i].acquire();
         }
-
-        // Try to pick up right fork
-        if (!forks[right_fork].try_acquire())
-        {
-            // Failed, put down left fork
-            forks[left_fork].release();
-            return false;
-        }
-
-        return true;
-    }
-
-    // Put down forks
-    void put_down_forks(int id)
-    {
-        int left_fork = id;
-        int right_fork = (id + 1) % num_philosophers;
-
-        forks[left_fork].release();
-        forks[right_fork].release();
-    }
-
-    void set_state(int id, PhilosopherState new_state)
-    {
-        states[id] = new_state;
-    }
-
-    PhilosopherState get_state(int id) const
-    {
-        return states[id];
     }
 
     void log(const std::string &message)
     {
         console.print(message);
     }
+
+    // Safe fork pickup with deadlock elimination
+    void pickup_forks(int i)
+    {
+        state_mutex.acquire();
+        state[i] = HUNGRY;
+        log("Philosopher " + std::to_string(i) + " is hungry and trying to pick up forks");
+        test(i);
+        state_mutex.release();
+
+        self[i].acquire();
+        log("Philosopher " + std::to_string(i) + " picked up forks");
+    }
+
+    // Putting down forks and checking if neighbors can eat
+    void return_forks(int i)
+    {
+        state_mutex.acquire();
+        state[i] = THINKING;
+        log("Philosopher " + std::to_string(i) + " puts down forks and returns to thinking");
+
+        test((i + n - 1) % n);
+        test((i + 1) % n);
+        state_mutex.release();
+    }
+
+    // Main philosopher function
+    void philosopher_function(int id)
+    {
+        const int cycles = running.load() ? 10 : 3; // Number of thinking/eating cycles
+
+        for (int i = 0; i < cycles && running.load(); i++)
+        {
+            // Thinking
+            log("Philosopher " + std::to_string(id) + " is thinking");
+            std::this_thread::sleep_for(std::chrono::milliseconds(300 + rand() % 700));
+
+            if (!running.load())
+                break;
+
+            // Trying to pick up forks
+            pickup_forks(id);
+
+            if (!running.load())
+            {
+                return_forks(id);
+                break;
+            }
+
+            // Eating
+            log("Philosopher " + std::to_string(id) + " is eating");
+            std::this_thread::sleep_for(std::chrono::milliseconds(300 + rand() % 700));
+
+            // Putting down forks
+            return_forks(id);
+        }
+    }
+
+    // Safe simulation stop
+    void stop()
+    {
+        running.store(false);
+    }
+
+    bool is_running() const
+    {
+        return running.load();
+    }
 };
 
-// TODO: Implement simulation control mechanism and deadlock handling
-void philosopher_function(int id, DiningTable &table)
-{
-    const int cycles = 10; // Number of thinking/eating cycles
-
-    for (int i = 0; i < cycles; i++)
-    {
-        // Thinking
-        table.set_state(id, THINKING);
-        table.log("Philosopher " + std::to_string(id) + " is thinking");
-        std::this_thread::sleep_for(std::chrono::milliseconds(500 + rand() % 500));
-
-        // Trying to pick up forks
-        table.set_state(id, HUNGRY);
-        table.log("Philosopher " + std::to_string(id) + " is hungry and trying to pick up forks");
-
-        // Keep trying until both forks are picked up
-        while (!table.try_pickup_forks(id))
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        // Eating
-        table.set_state(id, EATING);
-        table.log("Philosopher " + std::to_string(id) + " is eating");
-        std::this_thread::sleep_for(std::chrono::milliseconds(500 + rand() % 500));
-
-        // Putting down forks
-        table.put_down_forks(id);
-        table.log("Philosopher " + std::to_string(id) + " puts down forks");
-    }
-}
-
-// TODO: Add simulation time limit and safe stopping mechanism
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
-    {
-        std::cout << "Usage: " << argv[0] << " <number of philosophers>" << std::endl;
-        return 1;
-    }
+    // Default values
+    int num_philosophers = 5;
+    int simulation_time = 30;
 
-    int num_philosophers;
-    try
+    if (argc == 1)
     {
-        num_philosophers = std::stoi(argv[1]);
-        if (num_philosophers <= 0)
+        std::cout << "No arguments provided. Using default values: number of philosophers = 5, simulation time = 30s" << std::endl;
+    }
+    else if (argc == 2)
+    {
+        try
         {
-            throw std::invalid_argument("Number of philosophers must be positive");
+            num_philosophers = std::stoi(argv[1]);
+            if (num_philosophers <= 0)
+            {
+                throw std::invalid_argument("Number of philosophers must be positive");
+            }
+            std::cout << "Set number of philosophers = " << num_philosophers << ", simulation time = 30s (default)" << std::endl;
+        }
+        catch (const std::exception &e)
+        {
+            std::cout << "Error: " << e.what() << std::endl;
+            std::cout << "Usage: " << argv[0] << " [number of philosophers] [simulation time in seconds]" << std::endl;
+            return 1;
         }
     }
-    catch (const std::exception &e)
+    else if (argc >= 3)
     {
-        std::cout << "Error: " << e.what() << std::endl;
-        return 1;
+        try
+        {
+            num_philosophers = std::stoi(argv[1]);
+            simulation_time = std::stoi(argv[2]);
+
+            if (num_philosophers <= 0)
+            {
+                throw std::invalid_argument("Number of philosophers must be positive");
+            }
+
+            if (simulation_time <= 0)
+            {
+                throw std::invalid_argument("Simulation time must be positive");
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cout << "Error: " << e.what() << std::endl;
+            std::cout << "Usage: " << argv[0] << " [number of philosophers] [simulation time in seconds]" << std::endl;
+            return 1;
+        }
     }
 
     DiningTable table(num_philosophers);
@@ -182,8 +234,16 @@ int main(int argc, char *argv[])
     // Create threads for philosophers
     for (int i = 0; i < num_philosophers; i++)
     {
-        threads.push_back(std::thread(philosopher_function, i, std::ref(table)));
+        threads.push_back(std::thread([i, &table]()
+                                      { table.philosopher_function(i); }));
     }
+
+    // Run the simulation for the specified time
+    std::cout << "Started simulation for " << simulation_time << " seconds." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(simulation_time));
+
+    // Stop the simulation
+    table.stop();
 
     // Wait for all threads to finish
     for (auto &t : threads)
@@ -194,5 +254,6 @@ int main(int argc, char *argv[])
         }
     }
 
+    std::cout << "Simulation completed." << std::endl;
     return 0;
 }
