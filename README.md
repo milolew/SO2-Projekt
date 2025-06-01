@@ -1,88 +1,159 @@
-# Problem Jedzących Filozofów - Dokumentacja
+# Dining Philosophers Problem - Project 1
 
-## Opis projektu
+## Project Description
+This project implements the classic synchronization problem known as the "Dining Philosophers Problem" for the Operating Systems 2 course. The solution uses binary semaphores to coordinate access to shared resources (forks) and prevents deadlocks between threads representing philosophers.
 
-Ten projekt implementuje klasyczne zagadnienie synchronizacji znane jako "Problem jedzących filozofów" na potrzeby przedmiotu Systemy Operacyjne 2. Rozwiązanie wykorzystuje semafory binarne do koordynacji dostępu do współdzielonych zasobów (widelców) i zapobiega zakleszczeniom między wątkami reprezentującymi filozofów.
+## Problem Assumptions
+- n philosophers sit around a circular table.
+- Each philosopher alternately thinks and eats.
+- Between each pair of adjacent philosophers, there is one fork.
+- To eat a meal, a philosopher must pick up both forks adjacent to them.
+- After finishing the meal, the philosopher puts down the forks and returns to thinking.
 
-## Założenia problemu
+## Implementation Features
+- Use of binary semaphores for synchronizing access to resources.
+- Deadlock elimination through a solution based on Dijkstra's algorithm.
+- Control of philosopher states (THINKING, HUNGRY, EATING).
+- Safe termination of simulation at any time.
+- Synchronized display of console messages.
 
-- Przy okrągłym stole siedzi n filozofów.
-- Każdy filozof na przemian myśli i je.
-- Między każdą parą sąsiadujących filozofów znajduje się jeden widelec.
-- Aby zjeść posiłek, filozof musi podnieść oba sąsiadujące z nim widelce.
-- Po zakończeniu posiłku, filozof odkłada widelce i wraca do myślenia.
-
-## Cechy implementacji
-
-- Zastosowanie semaforów binarnych do synchronizacji dostępu do zasobów.
-- Eliminacja zakleszczenia dzięki rozwiązaniu opartemu na algorytmie Dijkstry.
-- Kontrola stanów filozofów (THINKING, HUNGRY, EATING).
-- Bezpieczne zakończenie symulacji w dowolnym momencie.
-- Synchronizacja wyświetlania komunikatów na konsoli.
-
-## Kompilacja programu
-
-Program można skompilować za pomocą kompilatora obsługującego standard C++11 lub nowszy, na przykład:
-
+## Program Compilation
+The program can be compiled using a compiler that supports C++11 standard or newer, for example:
 ```bash
 g++ main.cpp -o main
 ```
 
-## Uruchomienie programu
-
-Program można uruchomić z następującymi opcjonalnymi parametrami:
-
+## Running the Program
+The program can be run with the following optional parameters:
 ```bash
-./main [liczba_filozofów] [czas_symulacji_w_sekundach]
+./main [number_of_philosophers] [simulation_time_in_seconds]
 ```
+Where:
+- `number_of_philosophers` - number of philosophers participating in the simulation (default 5)
+- `simulation_time_in_seconds` - simulation duration in seconds (default 30)
 
-Gdzie:
-- `liczba_filozofów` - ilość filozofów biorących udział w symulacji (domyślnie 5)
-- `czas_symulacji_w_sekundach` - czas trwania symulacji w sekundach (domyślnie 30)
-
-Przykłady:
+Examples:
 ```bash
-# Uruchomienie z domyślnymi parametrami (5 filozofów, 30 sekund)
+# Run with default parameters (5 philosophers, 30 seconds)
 ./main
 
-# Uruchomienie z 7 filozofami i domyślnym czasem
+# Run with 7 philosophers and default time
 ./main 7
 
-# Uruchomienie z 10 filozofami i czasem 45 sekund
+# Run with 10 philosophers and 45 seconds
 ./main 10 45
 ```
 
-## Struktura kodu
+## Operating Mechanism
+1. Each philosopher is represented by a separate thread.
+2. Philosophers cyclically go through thinking and eating phases.
+3. Before eating, a philosopher must pick up both forks (left and right).
+4. Forks are represented by binary semaphores.
+5. Each philosopher's state is controlled to prevent deadlocks.
+6. The implementation is based on Dijkstra's algorithm, which guarantees no deadlock and prevents philosopher starvation.
 
-### Klasy i komponenty
+## Deadlock Prevention
+The program implements a deadlock prevention strategy through:
+- Checking availability of both forks before attempting to pick them up.
+- Using a `state_mutex` semaphore to protect the critical section during philosopher state changes.
+- Checking the state of neighboring philosophers after releasing forks.
 
-1. `Semaphore` - implementacja semafora binarnego przy użyciu operacji atomowych.
-2. `ConsoleLock` - klasa do synchronizacji wyświetlania komunikatów na konsoli.
-3. `DiningTable` - główna klasa implementująca rozwiązanie problemu jedzących filozofów.
-4. `PhilosopherState` - enum reprezentujący możliwe stany filozofa (THINKING, HUNGRY, EATING).
 
-### Kluczowe funkcje
+# Multi-threaded Chat Application - Project 2
 
-- `pickup_forks(int i)` - funkcja do bezpiecznego podnoszenia widelców przez filozofa.
-- `return_forks(int i)` - funkcja do odkładania widelców i sprawdzania, czy sąsiedzi mogą jeść.
-- `test(int i)` - funkcja sprawdzająca, czy filozof może zacząć jeść.
-- `philosopher_function(int id)` - główna funkcja reprezentująca cykl życia filozofa.
+A simple multi-threaded chat server and client implementation in Python using sockets and threading.
 
-## Mechanizm działania
+## Features
 
-1. Każdy filozof jest reprezentowany przez osobny wątek.
-2. Filosfowie cyklicznie przechodzą przez fazy myślenia i jedzenia.
-3. Przed jedzeniem filozof musi podnieść oba widelce (lewy i prawy).
-4. Widelce są reprezentowane przez semafory binarne.
-5. Stan każdego filozofa jest kontrolowany, aby zapobiec zakleszczeniom.
-6. Implementacja opiera się na algorytmie Dijkstry, który gwarantuje brak zakleszczenia i zapobiega zagłodzeniu filozofów.
+- Multi-threaded server supporting multiple concurrent clients
+- Username validation and duplicate prevention
+- Real-time message broadcasting to all connected clients
+- Join/leave notifications
+- Thread-safe client management
+- Simple command-line interface
 
-## Zapobieganie zakleszczeniom
+## Requirements
 
-Program implementuje strategię zapobiegania zakleszczeniom poprzez:
-- Sprawdzanie dostępności obu widelców przed próbą ich podniesienia.
-- Wykorzystanie semafora `state_mutex` do ochrony sekcji krytycznej podczas zmiany stanu filozofa.
-- Sprawdzanie stanu sąsiednich filozofów po zwolnieniu widelców.
+- Python 3.x
+- Virtual environment (recommended)
 
-## Autor
+## Setup
+
+1. Clone or download the project files
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   ```
+3. Activate the virtual environment:
+   ```bash
+   source venv/bin/activate  # On Linux/Mac
+   # or
+   venv\Scripts\activate     # On Windows
+   ```
+
+## Files
+
+- `server.py` - Multi-threaded chat server
+- `client.py` - Chat client implementation
+- `run_chat.sh` - Bash script to launch server and 3 clients automatically
+
+## Usage
+
+### Manual Start
+
+1. Activate virtual environment:
+   ```bash
+   source venv/bin/activate
+   ```
+
+2. Start the server:
+   ```bash
+   python server.py
+   ```
+
+3. In separate terminals, start clients:
+   ```bash
+   source venv/bin/activate
+   python client.py
+   ```
+
+### Automatic Start (Linux/Mac)
+
+1. Make the script executable:
+   ```bash
+   chmod +x run.sh
+   ```
+
+2. Run the launcher script:
+   ```bash
+   ./run.sh
+   ```
+
+This will automatically start the server and open 3 client terminals.
+
+## How to Use
+
+1. When starting a client, enter a unique username
+2. Start typing messages and press Enter to send
+3. Type `exit` to disconnect from the chat
+4. Use Ctrl+C to stop the server
+
+## Server Configuration
+
+Default configuration:
+- Host: `localhost`
+- Port: `9999`
+- Max connections: 5
+
+You can modify these settings in the `ChatServer` class constructor.
+
+## Client Configuration
+
+Clients can connect to different servers by modifying the host and port in `client.py` or by passing command line arguments:
+
+```bash
+python client.py <server_host> <server_port>
+```
+
+# Author
 Miłosz Lewandowski
