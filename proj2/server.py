@@ -18,18 +18,21 @@ class ChatServer:
         """
         self.host = host
         self.port = port
+        # Create a TCP socket for the server with ipv4 addressing
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Set socket options to allow reuse of the address
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.clients = []  # List to store client connections
         self.lock = threading.Lock()  # Lock for synchronizing access to shared resources
         
     def start(self):
         """Start the server and listen for client connections."""
-        self.server_socket.bind((self.host, self.port))
-        self.server_socket.listen(5)
+        self.server_socket.bind((self.host, self.port))     # Bind the socket to the host and port
+        self.server_socket.listen(5)                # Listen for incoming connections (max 5 queued connections)
         print(f"Server started on {self.host}:{self.port}")
         
         try:
+            # Main loop to accept client connections
             while True:
                 client_socket, address = self.server_socket.accept()
                 print(f"New connection from {address}")
@@ -39,6 +42,7 @@ class ChatServer:
                     target=self.handle_client,
                     args=(client_socket, address)
                 )
+                # Set the thread as a daemon so it will exit when the main program exits
                 client_thread.daemon = True
                 client_thread.start()
         except KeyboardInterrupt:

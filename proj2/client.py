@@ -18,6 +18,7 @@ class ChatClient:
         """
         self.host = host
         self.port = port
+        # Create a TCP socket for the client with ipv4 addressing
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.username = None
         self.receive_thread = None
